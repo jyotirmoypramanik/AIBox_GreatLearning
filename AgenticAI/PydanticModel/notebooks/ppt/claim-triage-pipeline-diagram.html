@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Claim Triage – How It Works</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f4f8;
+    color: #2d3748;
+    padding: 30px 20px 60px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 26px;
+    color: #1a365d;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #4a5568;
+    font-size: 14px;
+    margin-bottom: 36px;
+  }
+
+  /* ── Section labels ── */
+  .section-label {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #718096;
+    margin-bottom: 8px;
+  }
+
+  /* ── Input banner ── */
+  .input-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .fnol-card {
+    background: #fff;
+    border: 2px solid #bee3f8;
+    border-radius: 10px;
+    padding: 10px 14px;
+    width: 155px;
+    font-size: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .fnol-card .claim-id {
+    font-weight: 700;
+    color: #2b6cb0;
+    font-size: 13px;
+    margin-bottom: 3px;
+  }
+  .fnol-card .name { color: #4a5568; }
+  .fnol-card .incident {
+    color: #718096;
+    font-size: 11px;
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* ── Arrow ── */
+  .arrow-down {
+    text-align: center;
+    font-size: 28px;
+    color: #a0aec0;
+    margin: 4px 0;
+    line-height: 1;
+  }
+
+  /* ── Pipeline container ── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Stage box ── */
+  .stage {
+    width: 100%;
+    max-width: 860px;
+    border-radius: 14px;
+    padding: 20px 28px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .stage-s1 { background: #ebf8ff; border: 2px solid #90cdf4; }
+  .stage-s2 { background: #faf5ff; border: 2px solid #d6bcfa; }
+  .stage-s3 { background: #f0fff4; border: 2px solid #9ae6b4; }
+
+  .stage-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .stage-icon {
+    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .s1-icon { background: #bee3f8; }
+  .s2-icon { background: #e9d8fd; }
+  .s3-icon { background: #c6f6d5; }
+
+  .stage-title { font-size: 17px; font-weight: 700; }
+  .s1-title { color: #2b6cb0; }
+  .s2-title { color: #6b46c1; }
+  .s3-title { color: #276749; }
+
+  .stage-desc { font-size: 13px; color: #4a5568; margin-bottom: 14px; line-height: 1.6; }
+
+  /* ── Prompt & Output cols ── */
+  .stage-cols {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .col {
+    flex: 1;
+    min-width: 200px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+  }
+  .col-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #718096;
+  }
+  .col ul { padding-left: 16px; }
+  .col li { margin-bottom: 4px; color: #2d3748; }
+  .col code {
+    background: rgba(0,0,0,0.07);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 11.5px;
+  }
+
+  /* ── Gate check ── */
+  .gate {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 8px 0;
+  }
+  .gate-line {
+    flex: 1;
+    height: 2px;
+    background: #e2e8f0;
+  }
+  .gate-box {
+    background: #fffaf0;
+    border: 2px solid #f6ad55;
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #c05621;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(246,173,85,0.2);
+  }
+  .gate-icon { font-size: 18px; }
+  .gate-detail {
+    font-weight: 400;
+    color: #7b341e;
+    font-size: 11.5px;
+    margin-top: 2px;
+  }
+
+  /* ── Output section ── */
+  .output-section {
+    width: 100%;
+    max-width: 860px;
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    margin-top: 6px;
+  }
+  .output-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a365d;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  /* Results table */
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .results-table th {
+    background: #ebf4ff;
+    color: #2b6cb0;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #bee3f8;
+  }
+  .results-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  .results-table tr:last-child td { border-bottom: none; }
+  .results-table tr:hover td { background: #f7fafc; }
+
+  .badge {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-minor   { background: #c6f6d5; color: #276749; }
+  .badge-moderate{ background: #fefcbf; color: #7b6b0a; }
+  .badge-major   { background: #fed7d7; color: #9b2c2c; }
+
+  .queue-badge {
+    display: inline-block;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .q-glass         { background: #ebf8ff; color: #2b6cb0; }
+  .q-fast_track    { background: #f0fff4; color: #276749; }
+  .q-material_damage{ background: #faf5ff; color: #6b46c1; }
+  .q-total_loss    { background: #fff5f5; color: #9b2c2c; }
+
+  .priority-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .p1 { background: #e53e3e; }
+  .p2 { background: #dd6b20; }
+  .p3 { background: #d69e2e; }
+  .p4 { background: #38a169; }
+  .p5 { background: #718096; }
+
+  /* ── Key concepts box ── */
+  .concepts {
+    width: 100%;
+    max-width: 860px;
+    margin-top: 28px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .concept-card {
+    flex: 1;
+    min-width: 180px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .concept-card .concept-icon { font-size: 24px; margin-bottom: 8px; }
+  .concept-card h3 { font-size: 14px; color: #2d3748; margin-bottom: 6px; }
+  .concept-card p  { font-size: 12.5px; color: #718096; line-height: 1.5; }
+
+  /* ── Overall flow legend ── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 18px 0 24px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #4a5568;
+  }
+  .legend-box {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 600px) {
+    .stage-cols { flex-direction: column; }
+    .fnol-card { width: 140px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🚗 Automated Insurance Claim Triage</h1>
+<p class="subtitle">How a chained AI prompt pipeline processes real-world accident reports — explained simply</p>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#ebf8ff;border:2px solid #90cdf4;"></div> Stage (AI step)</div>
+  <div class="legend-item"><div class="legend-box" style="background:#fffaf0;border:2px solid #f6ad55;"></div> Gate (automatic check)</div>
+  <div class="legend-item"><div class="legend-box" style="background:#f0fff4;border:2px solid #9ae6b4;"></div> Output / result</div>
+</div>
+
+<!-- ═══════════════════════ INPUTS ═══════════════════════ -->
+<div class="section-label">📥 Inputs — 5 Raw Accident Reports (FNOL = First Notice of Loss)</div>
+<div class="input-row">
+  <div class="fnol-card">
+    <div class="claim-id">C001 · John Smith</div>
+    <div class="name">2018 Toyota Camry</div>
+    <div class="incident">"Rock chipped my windshield on the highway…"</div>
+  </div>
+  <div class="fnol-card">
+    <div class="claim-id">C002 · Sarah Johnson</div>
+    <div class="name">2020 Honda Civic</div>
+    <div class="incident">"Someone hit my parked car, dented the bumper…"</div>
+  </div>
+  <div class="fnol-card">
+    <div class="claim-id">C003 · Michael Rodriguez</div>
+    <div class="name">2022 Ford F-150</div>
+    <div class="incident">"Serious crash — airbags deployed, not drivable…"</div>
+  </div>
+  <div class="fnol-card">
+    <div class="claim-id">C004 · Emma Williams</div>
+    <div class="name">2019 Subaru Outback</div>
+    <div class="incident">"Hailstorm — dents on hood, roof, trunk…"</div>
+  </div>
+  <div class="fnol-card">
+    <div class="claim-id">C005 · David Brown</div>
+    <div class="name">2021 Tesla Model 3</div>
+    <div class="incident">"Someone keyed both driver's side doors…"</div>
+  </div>
+</div>
+
+<div class="arrow-down">▼</div>
+
+<!-- ═══════════════════════ PIPELINE ═══════════════════════ -->
+<div class="pipeline">
+
+  <!-- ── STAGE 1 ── -->
+  <div class="stage stage-s1">
+    <div class="stage-header">
+      <div class="stage-icon s1-icon">🔍</div>
+      <div>
+        <div class="stage-title s1-title">Stage 1 — Information Extraction</div>
+        <div style="font-size:12px;color:#4a5568;">AI reads the messy free-text report and pulls out the key facts</div>
+      </div>
+    </div>
+    <p class="stage-desc">
+      The AI is given a <strong>system prompt</strong> that says: <em>"You are an insurance assistant. Read this accident report and return a structured JSON object."</em>
+      It converts each informal paragraph into clean, machine-readable fields.
+    </p>
+    <div class="stage-cols">
+      <div class="col">
+        <div class="col-title">📩 What goes in</div>
+        <ul>
+          <li>Raw text accident report</li>
+          <li>Could be typed by anyone — messy, informal language</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-title">🤖 What the AI does</div>
+        <ul>
+          <li>Finds the <code>claim_id</code></li>
+          <li>Extracts customer <code>name</code> &amp; <code>vehicle</code></li>
+          <li>Summarises <code>loss_desc</code></li>
+          <li>Tags <code>damage_area</code> (windshield, bumper, hood…)</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-title">📤 What comes out</div>
+        <ul>
+          <li>Structured JSON, e.g.:<br>
+            <code>damage_area: ["windshield"]</code>
+          </li>
+          <li>One clean object per claim</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate 1 -->
+  <div class="gate">
+    <div class="gate-line"></div>
+    <div class="gate-box">
+      <span class="gate-icon">🛡️</span>
+      <div>
+        <div>Gate 1 — Schema Validation</div>
+        <div class="gate-detail">Pydantic checks: claim_id 2–10 chars? damage_area uses only allowed values? If wrong → reject &amp; log error, don't continue.</div>
+      </div>
+    </div>
+    <div class="gate-line"></div>
+  </div>
+
+  <div class="arrow-down">▼</div>
+
+  <!-- ── STAGE 2 ── -->
+  <div class="stage stage-s2">
+    <div class="stage-header">
+      <div class="stage-icon s2-icon">📊</div>
+      <div>
+        <div class="stage-title s2-title">Stage 2 — Severity Assessment</div>
+        <div style="font-size:12px;color:#4a5568;">AI estimates how bad the damage is and what it will likely cost</div>
+      </div>
+    </div>
+    <p class="stage-desc">
+      The structured claim from Stage 1 is handed to the AI again with a <strong>new prompt</strong>: <em>"You are a damage assessor. Given these damage details, classify the severity and estimate repair cost."</em>
+      The AI applies the carrier's own heuristics.
+    </p>
+    <div class="stage-cols">
+      <div class="col">
+        <div class="col-title">📩 What goes in</div>
+        <ul>
+          <li>Validated claim object from Gate 1</li>
+          <li>Damage description &amp; areas</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-title">🤖 What the AI does</div>
+        <ul>
+          <li><strong>Minor</strong> → scratches, chips ($100–$1,000)</li>
+          <li><strong>Moderate</strong> → bumper, panels ($1,000–$5,000)</li>
+          <li><strong>Major</strong> → structural, total loss ($5,000–$50,000)</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-title">📤 What comes out</div>
+        <ul>
+          <li><code>severity: "Minor"</code></li>
+          <li><code>est_cost: 250.00</code></li>
+          <li>One assessment per claim</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate 2 -->
+  <div class="gate">
+    <div class="gate-line"></div>
+    <div class="gate-box">
+      <span class="gate-icon">🛡️</span>
+      <div>
+        <div>Gate 2 — Cost-Range Check</div>
+        <div class="gate-detail">Code verifies: does the estimated cost actually fall in the right bracket for the stated severity? E.g. "Minor" but cost = $8,000 → rejected.</div>
+      </div>
+    </div>
+    <div class="gate-line"></div>
+  </div>
+
+  <div class="arrow-down">▼</div>
+
+  <!-- ── STAGE 3 ── -->
+  <div class="stage stage-s3">
+    <div class="stage-header">
+      <div class="stage-icon s3-icon">🗂️</div>
+      <div>
+        <div class="stage-title s3-title">Stage 3 — Queue Routing</div>
+        <div style="font-size:12px;color:#4a5568;">AI decides where to send the claim and how urgent it is</div>
+      </div>
+    </div>
+    <p class="stage-desc">
+      The claim + severity data are passed to a third AI call with a final prompt: <em>"Route this claim to the correct processing queue and assign a priority 1–5."</em>
+      Each queue is handled by different specialist teams inside the insurance company.
+    </p>
+    <div class="stage-cols">
+      <div class="col">
+        <div class="col-title">📩 What goes in</div>
+        <ul>
+          <li>Claim info + severity + cost</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-title">🤖 Routing rules</div>
+        <ul>
+          <li>🔵 <strong>glass</strong> — Minor, only glass damage</li>
+          <li>🟢 <strong>fast_track</strong> — Other minor damage</li>
+          <li>🟣 <strong>material_damage</strong> — All moderate</li>
+          <li>🔴 <strong>total_loss</strong> — All major</li>
+        </ul>
+      </div>
+      <div class="col">
+        <div class="col-title">📤 What comes out</div>
+        <ul>
+          <li><code>queue: "glass"</code></li>
+          <li><code>priority: 4</code> (1=urgent, 5=low)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gate 3 -->
+  <div class="gate">
+    <div class="gate-line"></div>
+    <div class="gate-box">
+      <span class="gate-icon">🛡️</span>
+      <div>
+        <div>Gate 3 — Routing Validation</div>
+        <div class="gate-detail">Pydantic checks queue is one of the 4 allowed values; priority is integer 1–5. Rejects anything that doesn't conform.</div>
+      </div>
+    </div>
+    <div class="gate-line"></div>
+  </div>
+
+  <div class="arrow-down">▼</div>
+
+  <!-- ── OUTPUT ── -->
+  <div class="output-section">
+    <div class="output-title">📋 Final Results — All 5 Claims Processed</div>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Claim</th>
+          <th>Customer</th>
+          <th>Damage Areas</th>
+          <th>Severity</th>
+          <th>Est. Cost</th>
+          <th>Queue</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>C001</strong></td>
+          <td>John Smith<br><span style="color:#718096;font-size:11px;">2018 Toyota Camry</span></td>
+          <td>windshield</td>
+          <td><span class="badge badge-minor">Minor</span></td>
+          <td>$250</td>
+          <td><span class="queue-badge q-glass">🔵 glass</span></td>
+          <td><span class="priority-dot p4">4</span></td>
+        </tr>
+        <tr>
+          <td><strong>C002</strong></td>
+          <td>Sarah Johnson<br><span style="color:#718096;font-size:11px;">2020 Honda Civic</span></td>
+          <td>bumper, rear</td>
+          <td><span class="badge badge-moderate">Moderate</span></td>
+          <td>$2,500</td>
+          <td><span class="queue-badge q-material_damage">🟣 material_damage</span></td>
+          <td><span class="priority-dot p3">3</span></td>
+        </tr>
+        <tr>
+          <td><strong>C003</strong></td>
+          <td>Michael Rodriguez<br><span style="color:#718096;font-size:11px;">2022 Ford F-150</span></td>
+          <td>front, hood, bumper</td>
+          <td><span class="badge badge-major">Major</span></td>
+          <td>$25,000</td>
+          <td><span class="queue-badge q-total_loss">🔴 total_loss</span></td>
+          <td><span class="priority-dot p2">2</span></td>
+        </tr>
+        <tr>
+          <td><strong>C004</strong></td>
+          <td>Emma Williams<br><span style="color:#718096;font-size:11px;">2019 Subaru Outback</span></td>
+          <td>hood, roof, trunk, side, glass</td>
+          <td><span class="badge badge-moderate">Moderate</span></td>
+          <td>$3,000</td>
+          <td><span class="queue-badge q-material_damage">🟣 material_damage</span></td>
+          <td><span class="priority-dot p3">3</span></td>
+        </tr>
+        <tr>
+          <td><strong>C005</strong></td>
+          <td>David Brown<br><span style="color:#718096;font-size:11px;">2021 Tesla Model 3</span></td>
+          <td>door</td>
+          <td><span class="badge badge-moderate">Moderate</span></td>
+          <td>$2,500</td>
+          <td><span class="queue-badge q-material_damage">🟣 material_damage</span></td>
+          <td><span class="priority-dot p3">3</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- end pipeline -->
+
+<!-- ── Key concepts ── -->
+<div style="max-width:860px;margin:0 auto;">
+  <div class="section-label" style="margin-top:36px;margin-bottom:14px;">💡 Key Concepts Used in This Notebook</div>
+  <div class="concepts">
+
+    <div class="concept-card">
+      <div class="concept-icon">🔗</div>
+      <h3>Prompt Chaining</h3>
+      <p>Instead of one big complicated prompt, the problem is split into 3 smaller, specialised AI calls — each one focused on a single job. The output of each step feeds the next.</p>
+    </div>
+
+    <div class="concept-card">
+      <div class="concept-icon">🛡️</div>
+      <h3>Gate Checks</h3>
+      <p>After every AI step, a code-based validator (using Pydantic) checks that the AI's answer makes sense. If it doesn't pass, the chain stops — preventing bad data cascading downstream.</p>
+    </div>
+
+    <div class="concept-card">
+      <div class="concept-icon">📐</div>
+      <h3>Pydantic Models</h3>
+      <p>Think of these as strict forms with rules — e.g. "severity must be Minor, Moderate, or Major — nothing else". They enforce structure on the AI's free-text JSON output.</p>
+    </div>
+
+    <div class="concept-card">
+      <div class="concept-icon">🤖</div>
+      <h3>Agentic Reasoning</h3>
+      <p>The system reasons step-by-step like a human expert would: first understand the claim, then judge how bad it is, then decide where to send it — each step informing the next.</p>
+    </div>
+
+  </div>
+
+  <!-- What is the notebook achieving? -->
+  <div style="background:#1a365d;color:#fff;border-radius:14px;padding:24px 28px;margin-top:28px;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:10px;">🎯 What Is This Notebook Achieving?</div>
+    <p style="font-size:13.5px;line-height:1.8;color:#bee3f8;">
+      It automates the first stage of <strong style="color:#fff;">insurance claims processing</strong> — a task that traditionally requires a human agent to manually read each report, classify the damage, and route it to the right team.
+      <br><br>
+      By chaining three AI prompts together (extract → assess → route), with automated gate checks in between, the system can process hundreds of messy accident reports in seconds and deliver a structured, validated routing decision — ready for the specialist team to act on.
+      <br><br>
+      This same <strong style="color:#fff;">prompt-chaining + gate-check pattern</strong> can be applied to any domain where you need to classify, assess, and route unstructured text input: medical triage, legal document sorting, customer support tickets, and more.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

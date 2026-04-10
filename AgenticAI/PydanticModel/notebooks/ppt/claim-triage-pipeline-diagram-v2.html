@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Claim Triage – Pipeline + Code Perspective</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f0f4f8;
+  color: #2d3748;
+  padding: 30px 20px 80px;
+}
+
+/* ── PAGE TITLE ── */
+h1 { text-align:center; font-size:26px; color:#1a365d; margin-bottom:4px; }
+.subtitle { text-align:center; color:#4a5568; font-size:14px; margin-bottom:28px; }
+
+/* ── TAB SYSTEM ── */
+.tabs {
+  display:flex; gap:6px; justify-content:center;
+  margin-bottom:28px; flex-wrap:wrap;
+}
+.tab-btn {
+  padding:9px 22px; border-radius:30px; border:2px solid #cbd5e0;
+  background:#fff; font-size:13px; font-weight:600; cursor:pointer;
+  color:#4a5568; transition: all 0.2s;
+}
+.tab-btn:hover { background:#ebf8ff; border-color:#90cdf4; }
+.tab-btn.active { background:#2b6cb0; color:#fff; border-color:#2b6cb0; }
+
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* ── SHARED: section heading ── */
+.section-label {
+  text-align:center; font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:1.2px; color:#718096; margin-bottom:10px;
+}
+
+/* ════════════════════════════════════════
+   TAB 1 – PIPELINE OVERVIEW  (existing)
+════════════════════════════════════════ */
+.input-row { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.fnol-card {
+  background:#fff; border:2px solid #bee3f8; border-radius:10px;
+  padding:10px 13px; width:148px; font-size:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.fnol-card .cid { font-weight:700; color:#2b6cb0; font-size:13px; margin-bottom:2px; }
+.fnol-card .veh { color:#4a5568; }
+.fnol-card .inc { color:#718096; font-size:11px; margin-top:4px; font-style:italic; }
+
+.arrow-down { text-align:center; font-size:26px; color:#a0aec0; margin:4px 0; line-height:1; }
+
+.pipeline { display:flex; flex-direction:column; align-items:center; }
+
+.stage {
+  width:100%; max-width:860px; border-radius:14px;
+  padding:20px 26px; box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+.s1 { background:#ebf8ff; border:2px solid #90cdf4; }
+.s2 { background:#faf5ff; border:2px solid #d6bcfa; }
+.s3 { background:#f0fff4; border:2px solid #9ae6b4; }
+
+.stage-hdr { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.sicon {
+  font-size:26px; width:44px; height:44px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%; flex-shrink:0;
+}
+.sicon-1 { background:#bee3f8; }
+.sicon-2 { background:#e9d8fd; }
+.sicon-3 { background:#c6f6d5; }
+
+.stage-title { font-size:17px; font-weight:700; }
+.t1 { color:#2b6cb0; } .t2 { color:#6b46c1; } .t3 { color:#276749; }
+.stage-sub { font-size:12px; color:#4a5568; }
+
+.stage-desc { font-size:13px; color:#4a5568; margin-bottom:12px; line-height:1.6; }
+
+.cols { display:flex; gap:14px; flex-wrap:wrap; }
+.col {
+  flex:1; min-width:190px; background:rgba(255,255,255,.7);
+  border-radius:10px; padding:11px 14px; font-size:12.5px;
+}
+.col-hdr { font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:#718096; margin-bottom:6px; }
+.col ul { padding-left:16px; }
+.col li { margin-bottom:4px; }
+.col code { background:rgba(0,0,0,.07); border-radius:4px; padding:1px 5px; font-family:'Courier New',monospace; font-size:11.5px; }
+
+.gate { width:100%; max-width:860px; display:flex; align-items:center; gap:0; margin:8px 0; }
+.gate-line { flex:1; height:2px; background:#e2e8f0; }
+.gate-box {
+  background:#fffaf0; border:2px solid #f6ad55; border-radius:10px;
+  padding:8px 18px; font-size:12.5px; font-weight:600; color:#c05621;
+  display:flex; align-items:center; gap:8px;
+  box-shadow:0 2px 8px rgba(246,173,85,.2);
+}
+.gate-detail { font-weight:400; color:#7b341e; font-size:11.5px; margin-top:2px; }
+
+.output-box {
+  width:100%; max-width:860px; background:#fff; border:2px solid #e2e8f0;
+  border-radius:14px; padding:20px 24px; box-shadow:0 4px 14px rgba(0,0,0,.06); margin-top:6px;
+}
+.rtable { width:100%; border-collapse:collapse; font-size:12.5px; }
+.rtable th { background:#ebf4ff; color:#2b6cb0; padding:8px 10px; text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid #bee3f8; }
+.rtable td { padding:8px 10px; border-bottom:1px solid #e2e8f0; vertical-align:top; }
+.rtable tr:last-child td { border-bottom:none; }
+.badge { display:inline-block; border-radius:20px; padding:2px 10px; font-size:11px; font-weight:700; }
+.bmin { background:#c6f6d5; color:#276749; }
+.bmod { background:#fefcbf; color:#7b6b0a; }
+.bmaj { background:#fed7d7; color:#9b2c2c; }
+.qb { display:inline-block; border-radius:6px; padding:3px 10px; font-size:11px; font-weight:700; }
+.qglass { background:#ebf8ff; color:#2b6cb0; }
+.qfast  { background:#f0fff4; color:#276749; }
+.qmat   { background:#faf5ff; color:#6b46c1; }
+.qtot   { background:#fff5f5; color:#9b2c2c; }
+.pdot {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; border-radius:50%; font-size:12px; font-weight:700; color:#fff;
+}
+.p1{background:#e53e3e;} .p2{background:#dd6b20;} .p3{background:#d69e2e;} .p4{background:#38a169;} .p5{background:#718096;}
+
+
+/* ════════════════════════════════════════
+   TAB 2 – FOUNDATION SETUP
+════════════════════════════════════════ */
+.foundation-grid { display:flex; gap:16px; flex-wrap:wrap; max-width:900px; margin:0 auto; }
+.found-card {
+  flex:1; min-width:240px; background:#fff; border-radius:14px;
+  border:2px solid #e2e8f0; padding:18px 20px;
+  box-shadow:0 3px 10px rgba(0,0,0,.06);
+}
+.found-card h3 { font-size:14px; color:#2d3748; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.found-card p  { font-size:12.5px; color:#4a5568; line-height:1.6; margin-bottom:10px; }
+pre.codeblock {
+  background:#1a202c; color:#e2e8f0; border-radius:10px;
+  padding:14px 16px; font-family:'Courier New',monospace;
+  font-size:11.5px; line-height:1.7; overflow-x:auto; margin-top:8px;
+}
+.kw  { color:#f6ad55; } /* keyword  */
+.fn  { color:#68d391; } /* function */
+.st  { color:#fc8181; } /* string   */
+.cm  { color:#718096; } /* comment  */
+.ty  { color:#76e4f7; } /* type     */
+.nm  { color:#fbd38d; } /* name     */
+.op  { color:#e2e8f0; } /* operator */
+.arrow-right { font-size:22px; color:#a0aec0; text-align:center; margin:6px 0; }
+
+
+/* ════════════════════════════════════════
+   TABS 3-5 – STAGE CODE PERSPECTIVE
+════════════════════════════════════════ */
+.code-stage-wrapper { max-width:960px; margin:0 auto; }
+
+/* Horizontal flow row */
+.flow-row {
+  display:flex; align-items:stretch; gap:0;
+  margin-bottom:22px; overflow-x:auto;
+}
+.flow-node {
+  flex:1; min-width:160px; border-radius:12px; padding:14px 15px;
+  position:relative; font-size:12.5px;
+}
+.flow-connector {
+  display:flex; align-items:center; justify-content:center;
+  padding:0 4px; font-size:20px; color:#a0aec0; flex-shrink:0; align-self:center;
+}
+
+/* node colour themes */
+.node-input   { background:#ebf8ff; border:2px solid #90cdf4; }
+.node-entry   { background:#fef3c7; border:2px solid #f6d860; }
+.node-prompt  { background:#fce7f3; border:2px solid #f9a8d4; }
+.node-pydantic{ background:#ede9fe; border:2px solid #c4b5fd; }
+.node-gate    { background:#fffbeb; border:2px solid #f6ad55; }
+.node-output  { background:#f0fff4; border:2px solid #9ae6b4; }
+
+.node-label {
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.8px; color:#718096; margin-bottom:6px;
+}
+.node-title { font-size:13.5px; font-weight:700; margin-bottom:6px; }
+.nt-input   { color:#2b6cb0; }
+.nt-entry   { color:#b7791f; }
+.nt-prompt  { color:#97266d; }
+.nt-pydantic{ color:#6b46c1; }
+.nt-gate    { color:#c05621; }
+.nt-output  { color:#276749; }
+
+.node-body { font-size:11.5px; color:#4a5568; line-height:1.6; }
+.node-body code {
+  background:rgba(0,0,0,.08); border-radius:3px;
+  padding:1px 5px; font-family:'Courier New',monospace; font-size:11px;
+}
+.node-body strong { color:#2d3748; }
+
+pre.mini {
+  background:#1a202c; color:#e2e8f0; border-radius:8px;
+  padding:10px 12px; font-size:11px; line-height:1.65;
+  font-family:'Courier New',monospace; margin-top:8px; overflow-x:auto;
+}
+
+/* param table */
+.ptable { width:100%; border-collapse:collapse; margin-top:8px; font-size:11.5px; }
+.ptable th { background:rgba(0,0,0,.06); padding:5px 8px; text-align:left; font-size:10.5px; color:#4a5568; }
+.ptable td { padding:5px 8px; border-top:1px solid rgba(0,0,0,.06); }
+.ptable code { background:rgba(0,0,0,.07); border-radius:3px; padding:1px 4px; font-family:'Courier New',monospace; font-size:10.5px; }
+
+/* validation pill */
+.vpill {
+  display:inline-block; border-radius:5px; padding:2px 8px;
+  font-size:10.5px; font-weight:600; margin:2px 2px 2px 0;
+}
+.vp-ok  { background:#c6f6d5; color:#276749; }
+.vp-err { background:#fed7d7; color:#9b2c2c; }
+
+/* info callout */
+.callout {
+  border-radius:10px; padding:14px 18px;
+  font-size:12.5px; line-height:1.7; margin-top:16px;
+}
+.callout-blue  { background:#ebf8ff; border-left:4px solid #4299e1; }
+.callout-purple{ background:#faf5ff; border-left:4px solid #9f7aea; }
+.callout-green { background:#f0fff4; border-left:4px solid #48bb78; }
+
+/* concept strip */
+.concept-strip {
+  display:flex; gap:14px; flex-wrap:wrap;
+  max-width:960px; margin:28px auto 0;
+}
+.concept-card {
+  flex:1; min-width:180px; background:#fff; border-radius:12px;
+  border:1px solid #e2e8f0; padding:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.concept-card h3 { font-size:13.5px; margin-bottom:6px; }
+.concept-card p  { font-size:12px; color:#718096; line-height:1.5; }
+
+/* big outcome box */
+.outcome {
+  max-width:860px; margin:28px auto 0;
+  background:#1a365d; color:#bee3f8;
+  border-radius:14px; padding:22px 28px;
+}
+.outcome h3 { color:#fff; font-size:15px; margin-bottom:10px; }
+.outcome p  { font-size:13px; line-height:1.8; }
+</style>
+</head>
+<body>
+
+<h1>🚗 Auto Claim Triage — Complete Guide</h1>
+<p class="subtitle">Pipeline overview · foundation setup · per-stage code walkthrough</p>
+
+<!-- ───────────── TABS ───────────── -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('overview')">📊 Pipeline Overview</button>
+  <button class="tab-btn" onclick="showTab('foundation')">🔧 Setup &amp; Foundation</button>
+  <button class="tab-btn" onclick="showTab('stage1')">🔍 Stage 1 — Extraction</button>
+  <button class="tab-btn" onclick="showTab('stage2')">📊 Stage 2 — Severity</button>
+  <button class="tab-btn" onclick="showTab('stage3')">🗂 Stage 3 — Routing</button>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 1 · PIPELINE OVERVIEW
+════════════════════════════════════════════════ -->
+<div id="tab-overview" class="tab-pane active">
+  <div class="section-label">📥 5 Raw Accident Reports fed into the pipeline</div>
+  <div class="input-row">
+    <div class="fnol-card"><div class="cid">C001 · John Smith</div><div class="veh">2018 Toyota Camry</div><div class="inc">"Rock chipped my windshield…"</div></div>
+    <div class="fnol-card"><div class="cid">C002 · Sarah Johnson</div><div class="veh">2020 Honda Civic</div><div class="inc">"Hit &amp; run, dented rear bumper…"</div></div>
+    <div class="fnol-card"><div class="cid">C003 · M. Rodriguez</div><div class="veh">2022 Ford F-150</div><div class="inc">"Serious crash, airbags deployed…"</div></div>
+    <div class="fnol-card"><div class="cid">C004 · Emma Williams</div><div class="veh">2019 Subaru Outback</div><div class="inc">"Hailstorm — hood, roof, trunk…"</div></div>
+    <div class="fnol-card"><div class="cid">C005 · David Brown</div><div class="veh">2021 Tesla Model 3</div><div class="inc">"Keyed — deep scratches on doors…"</div></div>
+  </div>
+  <div class="arrow-down">▼</div>
+  <div class="pipeline">
+    <div class="stage s1">
+      <div class="stage-hdr"><div class="sicon sicon-1">🔍</div><div><div class="stage-title t1">Stage 1 — Information Extraction</div><div class="stage-sub">AI reads messy text → outputs a clean structured object</div></div></div>
+      <p class="stage-desc">AI is told: <em>"Read this accident report and return only a JSON object with: claim_id, name, vehicle, loss_desc, damage_area."</em></p>
+      <div class="cols">
+        <div class="col"><div class="col-hdr">📩 Input</div><ul><li>Raw FNOL free-text string</li></ul></div>
+        <div class="col"><div class="col-hdr">🤖 AI extracts</div><ul><li><code>claim_id</code> · <code>name</code> · <code>vehicle</code></li><li><code>loss_desc</code> summary</li><li><code>damage_area</code> tags</li></ul></div>
+        <div class="col"><div class="col-hdr">📤 Output</div><ul><li><code>ClaimInformation</code> object</li></ul></div>
+      </div>
+    </div>
+    <div class="gate"><div class="gate-line"></div><div class="gate-box"><span>🛡️</span><div><div>Gate 1 — Schema Validation</div><div class="gate-detail">Pydantic: field types, length limits, damage_area from allowed list only</div></div></div><div class="gate-line"></div></div>
+    <div class="arrow-down">▼</div>
+    <div class="stage s2">
+      <div class="stage-hdr"><div class="sicon sicon-2">📊</div><div><div class="stage-title t2">Stage 2 — Severity Assessment</div><div class="stage-sub">AI judges how bad the damage is &amp; estimates repair cost</div></div></div>
+      <p class="stage-desc">AI is told: <em>"You are a damage assessor. Classify severity (Minor / Moderate / Major) and estimate the repair cost."</em></p>
+      <div class="cols">
+        <div class="col"><div class="col-hdr">📩 Input</div><ul><li><code>ClaimInformation</code> JSON</li></ul></div>
+        <div class="col"><div class="col-hdr">🤖 AI decides</div><ul><li>Minor → $100–$1,000</li><li>Moderate → $1,000–$5,000</li><li>Major → $5,000–$50,000</li></ul></div>
+        <div class="col"><div class="col-hdr">📤 Output</div><ul><li><code>SeverityAssessment</code> object</li></ul></div>
+      </div>
+    </div>
+    <div class="gate"><div class="gate-line"></div><div class="gate-box"><span>🛡️</span><div><div>Gate 2 — Cost-Range Check</div><div class="gate-detail">Code verifies est_cost falls in correct dollar range for the severity stated</div></div></div><div class="gate-line"></div></div>
+    <div class="arrow-down">▼</div>
+    <div class="stage s3">
+      <div class="stage-hdr"><div class="sicon sicon-3">🗂️</div><div><div class="stage-title t3">Stage 3 — Queue Routing</div><div class="stage-sub">AI decides which specialist team gets this claim</div></div></div>
+      <p class="stage-desc">AI is told: <em>"Route to one of: glass | fast_track | material_damage | total_loss. Assign priority 1–5."</em></p>
+      <div class="cols">
+        <div class="col"><div class="col-hdr">📩 Input</div><ul><li><code>ClaimInformation</code> + <code>SeverityAssessment</code></li></ul></div>
+        <div class="col"><div class="col-hdr">🤖 AI routes</div><ul><li>🔵 glass · 🟢 fast_track</li><li>🟣 material_damage · 🔴 total_loss</li></ul></div>
+        <div class="col"><div class="col-hdr">📤 Output</div><ul><li><code>ClaimRouting</code> object</li></ul></div>
+      </div>
+    </div>
+    <div class="gate"><div class="gate-line"></div><div class="gate-box"><span>🛡️</span><div><div>Gate 3 — Routing Validation</div><div class="gate-detail">Pydantic: queue must be one of 4 allowed values; priority integer 1–5</div></div></div><div class="gate-line"></div></div>
+    <div class="arrow-down">▼</div>
+    <div class="output-box">
+      <div style="font-size:15px;font-weight:700;color:#1a365d;margin-bottom:14px;text-align:center;">📋 Final Results (all 5 claims)</div>
+      <table class="rtable">
+        <thead><tr><th>Claim</th><th>Customer</th><th>Damage</th><th>Severity</th><th>Cost</th><th>Queue</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td><b>C001</b></td><td>John Smith</td><td>windshield</td><td><span class="badge bmin">Minor</span></td><td>$250</td><td><span class="qb qglass">🔵 glass</span></td><td><span class="pdot p4">4</span></td></tr>
+          <tr><td><b>C002</b></td><td>Sarah Johnson</td><td>bumper, rear</td><td><span class="badge bmod">Moderate</span></td><td>$2,500</td><td><span class="qb qmat">🟣 material_damage</span></td><td><span class="pdot p3">3</span></td></tr>
+          <tr><td><b>C003</b></td><td>M. Rodriguez</td><td>front, hood, bumper</td><td><span class="badge bmaj">Major</span></td><td>$25,000</td><td><span class="qb qtot">🔴 total_loss</span></td><td><span class="pdot p2">2</span></td></tr>
+          <tr><td><b>C004</b></td><td>Emma Williams</td><td>hood, roof, trunk…</td><td><span class="badge bmod">Moderate</span></td><td>$3,000</td><td><span class="qb qmat">🟣 material_damage</span></td><td><span class="pdot p3">3</span></td></tr>
+          <tr><td><b>C005</b></td><td>David Brown</td><td>door</td><td><span class="badge bmod">Moderate</span></td><td>$2,500</td><td><span class="qb qmat">🟣 material_damage</span></td><td><span class="pdot p3">3</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 2 · FOUNDATION SETUP
+════════════════════════════════════════════════ -->
+<div id="tab-foundation" class="tab-pane">
+  <div class="section-label" style="margin-bottom:16px;">Shared building blocks used by all three stages</div>
+  <div class="foundation-grid">
+
+    <div class="found-card">
+      <h3>📦 Libraries imported</h3>
+      <p>Four libraries do the heavy lifting across the entire notebook:</p>
+      <pre class="codeblock"><span class="kw">from</span> openai  <span class="kw">import</span> <span class="ty">OpenAI</span>       <span class="cm"># talks to the AI</span>
+<span class="kw">from</span> pydantic <span class="kw">import</span> <span class="ty">BaseModel</span>, <span class="ty">Field</span>  <span class="cm"># validates outputs</span>
+<span class="kw">from</span> typing  <span class="kw">import</span> <span class="ty">List</span>, <span class="ty">Literal</span>, <span class="ty">Optional</span>
+<span class="kw">import</span> json                        <span class="cm"># parses AI text → dict</span></pre>
+    </div>
+
+    <div class="found-card">
+      <h3>🤖 OpenAI Client — the "AI phone line"</h3>
+      <p>Created once, reused by all three stages. Points to a course API endpoint.</p>
+      <pre class="codeblock"><span class="nm">client</span> <span class="op">=</span> <span class="ty">OpenAI</span>(
+  base_url<span class="op">=</span><span class="st">"https://openai.vocareum.com/v1"</span>,
+  api_key<span class="op">=</span><span class="st">"your-key-here"</span>
+)
+<span class="nm">MODEL</span> <span class="op">=</span> <span class="st">"gpt-4.1-nano"</span>   <span class="cm"># model used throughout</span></pre>
+    </div>
+
+    <div class="found-card" style="flex-basis:100%;">
+      <h3>⚙️ <code>get_completion()</code> — the shared AI helper every stage calls</h3>
+      <p>All three stage functions call this helper. It builds the message list, fires the API request, and returns the AI's raw text response.</p>
+      <pre class="codeblock"><span class="kw">def</span> <span class="fn">get_completion</span>(
+    messages    <span class="op">=</span> <span class="ty">None</span>,       <span class="cm"># 👈 list of role/content dicts</span>
+    system_prompt <span class="op">=</span> <span class="ty">None</span>,     <span class="cm"># optional — prepended as "system"</span>
+    user_prompt   <span class="op">=</span> <span class="ty">None</span>,     <span class="cm"># optional — appended as "user"</span>
+    model         <span class="op">=</span> <span class="nm">MODEL</span>     <span class="cm"># default: gpt-4.1-nano</span>
+) <span class="op">-></span> <span class="ty">str</span>:
+
+    response <span class="op">=</span> client.chat.completions.create(
+        model<span class="op">=</span>model,
+        messages<span class="op">=</span>messages,
+        temperature<span class="op">=</span><span class="nm">0.7</span>
+    )
+    <span class="kw">return</span> response.choices[<span class="nm">0</span>].message.content  <span class="cm"># 👈 raw text back</span></pre>
+      <div class="callout callout-blue" style="margin-top:12px;">
+        <strong>What the message list looks like</strong> — every API call has at least two messages:<br>
+        <code style="background:rgba(0,0,0,.07);padding:1px 5px;border-radius:3px;font-size:11.5px;">{"role":"system", "content": "You are an insurance assistant…"}</code> ← tells AI its job<br>
+        <code style="background:rgba(0,0,0,.07);padding:1px 5px;border-radius:3px;font-size:11.5px;">{"role":"user",   "content": "Claim ID: C001 … windshield…"}</code> ← the actual data
+      </div>
+    </div>
+
+  </div><!-- /foundation-grid -->
+
+  <div class="concept-strip">
+    <div class="concept-card">
+      <h3>🔗 Why chain prompts?</h3>
+      <p>One giant prompt gets confused. Three small specialised prompts — each with a single clear job — are far more reliable and easier to debug.</p>
+    </div>
+    <div class="concept-card">
+      <h3>📐 What is Pydantic?</h3>
+      <p>A Python library that acts like a strict form. You define exactly what fields are allowed, their types and constraints. Any AI response that doesn't match is <em>rejected automatically</em>.</p>
+    </div>
+    <div class="concept-card">
+      <h3>🧠 What is Prompt Engineering?</h3>
+      <p>Carefully writing the <code>system</code> message so the AI knows its role, the rules it must follow, and the exact format (JSON) it must return.</p>
+    </div>
+    <div class="concept-card">
+      <h3>🛡️ What are Gate Checks?</h3>
+      <p>Python code that runs <em>after</em> every AI call to verify the output before passing it to the next stage. Stops bad data from silently propagating.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 3 · STAGE 1 CODE PERSPECTIVE
+════════════════════════════════════════════════ -->
+<div id="tab-stage1" class="tab-pane">
+  <div class="code-stage-wrapper">
+    <div class="section-label" style="margin-bottom:18px;">Stage 1 — Information Extraction · Code Perspective</div>
+
+    <!-- FLOW ROW -->
+    <div class="flow-row">
+
+      <!-- RAW INPUT -->
+      <div class="flow-node node-input">
+        <div class="node-label">① Raw Input</div>
+        <div class="node-title nt-input">sample_fnols list</div>
+        <div class="node-body">
+          A plain Python <strong>list of strings</strong>. Each string is one raw accident report typed by a customer.<br><br>
+          <strong>Variable:</strong> <code>sample_fnols</code><br>
+          <strong>Type:</strong> <code>list[str]</code><br>
+          <strong>Length:</strong> 5 items<br><br>
+          <em>Example item:</em>
+          <pre class="mini">"Claim ID: C001
+Customer: John Smith
+Vehicle: 2018 Toyota Camry
+Incident: A rock hit my
+windshield causing a chip..."</pre>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- ENTRY POINT -->
+      <div class="flow-node node-entry">
+        <div class="node-label">② Function Entry</div>
+        <div class="node-title nt-entry">extract_claim_info()</div>
+        <div class="node-body">
+          Called once per FNOL in a list comprehension:<br>
+          <pre class="mini">[<span class="fn">extract_claim_info</span>(t)
+ <span class="kw">for</span> t <span class="kw">in</span> sample_fnols]</pre>
+          <table class="ptable">
+            <tr><th>Parameter</th><th>Type</th><th>What it is</th></tr>
+            <tr><td><code>fnol_text</code></td><td><code>str</code></td><td>One raw accident report string</td></tr>
+          </table>
+          <div style="margin-top:8px;font-size:11.5px;color:#4a5568;"><strong>Returns:</strong> <code>ClaimInformation</code> or <code>None</code></div>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- PROMPT ENGINEERING -->
+      <div class="flow-node node-prompt">
+        <div class="node-label">③ Prompt Engineering</div>
+        <div class="node-title nt-prompt">info_extraction_system_prompt</div>
+        <div class="node-body">
+          Built as a <strong>messages list</strong> and sent to the AI:<br>
+          <pre class="mini">messages = [
+  {<span class="st">"role"</span>: <span class="st">"system"</span>,
+   <span class="st">"content"</span>: info_extraction_system_prompt},
+  {<span class="st">"role"</span>: <span class="st">"user"</span>,
+   <span class="st">"content"</span>: fnol_text}
+]</pre>
+          <strong>System prompt tells AI:</strong><br>
+          · Your role: "insurance processing assistant"<br>
+          · Output format: valid JSON only<br>
+          · Allowed <code>damage_area</code> values (12 options)<br>
+          · "Only respond with JSON, nothing else."
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- PYDANTIC -->
+      <div class="flow-node node-pydantic">
+        <div class="node-label">④ Pydantic Model</div>
+        <div class="node-title nt-pydantic">ClaimInformation</div>
+        <div class="node-body">
+          <code>class ClaimInformation(BaseModel):</code><br><br>
+          <table class="ptable">
+            <tr><th>Field</th><th>Rule</th></tr>
+            <tr><td><code>claim_id</code></td><td>str, 2–10 chars</td></tr>
+            <tr><td><code>name</code></td><td>str, 2–100 chars</td></tr>
+            <tr><td><code>vehicle</code></td><td>str, 2–100 chars</td></tr>
+            <tr><td><code>loss_desc</code></td><td>str, 10–500 chars</td></tr>
+            <tr><td><code>damage_area</code></td><td>list of Literal values only</td></tr>
+          </table>
+          <div style="margin-top:8px;">
+            <span class="vpill vp-ok">✔ pass</span> JSON matches all rules<br>
+            <span class="vpill vp-err">✘ fail</span> raises ValueError → returns None
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- GATE -->
+      <div class="flow-node node-gate">
+        <div class="node-label">⑤ Gate Check</div>
+        <div class="node-title nt-gate">gate1_validate_claim_info()</div>
+        <div class="node-body">
+          <table class="ptable">
+            <tr><th>Parameter</th><th>Type</th></tr>
+            <tr><td><code>claim_info_json</code></td><td><code>str</code> (raw AI text)</td></tr>
+          </table>
+          <pre class="mini"><span class="cm"># Step 1: text → dict</span>
+d = json.loads(claim_info_json)
+<span class="cm"># Step 2: dict → Pydantic</span>
+ClaimInformation(**d)
+<span class="cm"># Raises ValueError if fails</span></pre>
+          <strong>Returns:</strong> <code>ClaimInformation</code><br>
+          <strong>On fail:</strong> raises <code>ValueError</code> → caller returns <code>None</code>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- OUTPUT -->
+      <div class="flow-node node-output">
+        <div class="node-label">⑥ Output / Exit</div>
+        <div class="node-title nt-output">ClaimInformation object</div>
+        <div class="node-body">
+          Validated Pydantic object ready for Stage 2.<br><br>
+          <strong>Example (C001):</strong>
+          <pre class="mini">ClaimInformation(
+  claim_id = <span class="st">"C001"</span>,
+  name     = <span class="st">"John Smith"</span>,
+  vehicle  = <span class="st">"2018 Toyota Camry"</span>,
+  loss_desc= <span class="st">"Rock hit windshield..."</span>,
+  damage_area=[<span class="st">"windshield"</span>]
+)</pre>
+          Stored in list:<br>
+          <code>extracted_claim_info_items</code>
+        </div>
+      </div>
+
+    </div><!-- /flow-row -->
+
+    <div class="callout callout-blue">
+      <strong>What Pydantic is doing here:</strong> It acts like a customs officer. The AI's raw JSON text is first parsed (<code>json.loads</code>) then fed into <code>ClaimInformation(**dict)</code>. Pydantic then checks every field — correct type? within length? damage_area value in the allowed list? If anything fails, it raises an error and the gate catches it, returning <code>None</code> instead of passing bad data forward.
+    </div>
+    <div class="callout callout-purple" style="margin-top:12px;">
+      <strong>What Prompt Engineering is doing here:</strong> The <code>system</code> message shapes the AI's entire behaviour for this call — it defines the AI's role, the output format (JSON only), and the exact allowed values for <code>damage_area</code>. Without this, the AI might say "the windshield" instead of <code>"windshield"</code>, which would fail Pydantic validation.
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 4 · STAGE 2 CODE PERSPECTIVE
+════════════════════════════════════════════════ -->
+<div id="tab-stage2" class="tab-pane">
+  <div class="code-stage-wrapper">
+    <div class="section-label" style="margin-bottom:18px;">Stage 2 — Severity Assessment · Code Perspective</div>
+
+    <div class="flow-row">
+
+      <!-- INPUT -->
+      <div class="flow-node node-input">
+        <div class="node-label">① Input from Stage 1</div>
+        <div class="node-title nt-input">ClaimInformation object</div>
+        <div class="node-body">
+          The validated output from Stage 1. Converted to JSON string before sending to AI:<br>
+          <pre class="mini">claim_info_json =
+  claim_info<span class="fn">.model_dump_json()</span>
+<span class="cm"># Pydantic → JSON string</span></pre>
+          <strong>Variable:</strong> <code>extracted_claim_info_items</code><br>
+          <strong>Type:</strong> <code>list[ClaimInformation]</code>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- ENTRY -->
+      <div class="flow-node node-entry">
+        <div class="node-label">② Function Entry</div>
+        <div class="node-title nt-entry">assess_severity()</div>
+        <div class="node-body">
+          Called once per validated claim:<br>
+          <pre class="mini">[<span class="fn">assess_severity</span>(item)
+ <span class="kw">for</span> item <span class="kw">in</span>
+ extracted_claim_info_items]</pre>
+          <table class="ptable">
+            <tr><th>Parameter</th><th>Type</th><th>What it is</th></tr>
+            <tr><td><code>claim_info</code></td><td><code>ClaimInformation</code></td><td>Validated claim from Stage 1</td></tr>
+          </table>
+          <div style="margin-top:8px;font-size:11.5px;"><strong>Returns:</strong> <code>SeverityAssessment</code> or <code>None</code></div>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- PROMPT -->
+      <div class="flow-node node-prompt">
+        <div class="node-label">③ Prompt Engineering</div>
+        <div class="node-title nt-prompt">severity_assessment_system_prompt</div>
+        <div class="node-body">
+          <pre class="mini">messages = [
+  {<span class="st">"role"</span>: <span class="st">"system"</span>,
+   <span class="st">"content"</span>: severity_assessment_system_prompt},
+  {<span class="st">"role"</span>: <span class="st">"user"</span>,
+   <span class="st">"content"</span>: claim_info_json}
+]</pre>
+          <strong>System prompt tells AI:</strong><br>
+          · Role: "damage assessor"<br>
+          · Three severity tiers + cost ranges<br>
+          · Output: JSON with <code>severity</code> &amp; <code>est_cost</code> only<br>
+          · "Nothing else"
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- PYDANTIC -->
+      <div class="flow-node node-pydantic">
+        <div class="node-label">④ Pydantic Model</div>
+        <div class="node-title nt-pydantic">SeverityAssessment</div>
+        <div class="node-body">
+          <code>class SeverityAssessment(BaseModel):</code><br><br>
+          <table class="ptable">
+            <tr><th>Field</th><th>Rule</th></tr>
+            <tr><td><code>severity</code></td><td>Literal: "Minor" | "Moderate" | "Major"</td></tr>
+            <tr><td><code>est_cost</code></td><td>float, must be &gt; 0</td></tr>
+          </table>
+          <div style="margin-top:8px;">
+            <span class="vpill vp-ok">✔ pass</span> valid enum + positive float<br>
+            <span class="vpill vp-err">✘ fail</span> e.g. "moderate" (wrong case) rejected
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- GATE -->
+      <div class="flow-node node-gate">
+        <div class="node-label">⑤ Gate Check</div>
+        <div class="node-title nt-gate">gate2_cost_range_ok()</div>
+        <div class="node-body">
+          <strong>Extra business-logic check beyond Pydantic:</strong>
+          <pre class="mini"><span class="kw">if</span> severity == <span class="st">"Minor"</span> <span class="kw">and</span>
+   (cost &lt; <span class="nm">100</span> <span class="kw">or</span> cost &gt; <span class="nm">1000</span>):
+   raise <span class="ty">ValueError</span>(...)
+<span class="kw">elif</span> severity == <span class="st">"Moderate"</span> <span class="kw">and</span>
+   (cost &lt; <span class="nm">1000</span> <span class="kw">or</span> cost &gt; <span class="nm">5000</span>):
+   raise <span class="ty">ValueError</span>(...)
+<span class="kw">elif</span> severity == <span class="st">"Major"</span> <span class="kw">and</span>
+   (cost &lt; <span class="nm">5000</span> <span class="kw">or</span> cost &gt; <span class="nm">50000</span>):
+   raise <span class="ty">ValueError</span>(...)</pre>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- OUTPUT -->
+      <div class="flow-node node-output">
+        <div class="node-label">⑥ Output / Exit</div>
+        <div class="node-title nt-output">SeverityAssessment object</div>
+        <div class="node-body">
+          <strong>All 5 results:</strong>
+          <pre class="mini">C001 → Minor,    $250
+C002 → Moderate, $2,500
+C003 → Major,    $25,000
+C004 → Moderate, $3,000
+C005 → Moderate, $2,500</pre>
+          Stored in:<br>
+          <code>severity_assessment_items</code>
+        </div>
+      </div>
+
+    </div><!-- /flow-row -->
+
+    <div class="callout callout-purple">
+      <strong>What Pydantic is doing here:</strong> It enforces that <code>severity</code> is one of exactly three allowed strings (using <code>Literal</code>) and that <code>est_cost</code> is a positive number. But Pydantic alone can't check business rules like "Minor must be under $1,000" — so Gate 2 adds those range checks in plain Python <code>if</code> statements on top of Pydantic's structural checks.
+    </div>
+    <div class="callout callout-blue" style="margin-top:12px;">
+      <strong>What Prompt Engineering is doing here:</strong> The system prompt encodes the carrier's own business heuristics (cost ranges per severity tier) directly into the instruction to the AI — so the AI already knows the expected ranges before answering. This makes the AI's output more likely to pass Gate 2 on the first attempt.
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     TAB 5 · STAGE 3 CODE PERSPECTIVE
+════════════════════════════════════════════════ -->
+<div id="tab-stage3" class="tab-pane">
+  <div class="code-stage-wrapper">
+    <div class="section-label" style="margin-bottom:18px;">Stage 3 — Queue Routing · Code Perspective</div>
+
+    <div class="flow-row">
+
+      <!-- INPUT -->
+      <div class="flow-node node-input">
+        <div class="node-label">① Input — 2 objects merged</div>
+        <div class="node-title nt-input">ClaimInformation + SeverityAssessment</div>
+        <div class="node-body">
+          Both objects are merged into a single dict and JSON-serialised before sending:<br>
+          <pre class="mini">routing_input = {
+  <span class="st">"claim_info"</span>:
+    claim_info.<span class="fn">model_dump()</span>,
+  <span class="st">"severity_assessment"</span>:
+    severity.<span class="fn">model_dump()</span>
+}
+<span class="cm"># Then: json.dumps(routing_input)</span></pre>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- ENTRY -->
+      <div class="flow-node node-entry">
+        <div class="node-label">② Function Entry</div>
+        <div class="node-title nt-entry">route_claim()</div>
+        <div class="node-body">
+          Called with a <code>zip()</code> of both Stage 1 &amp; 2 results:<br>
+          <pre class="mini">[<span class="fn">route_claim</span>(claim, sev)
+ <span class="kw">for</span> claim, sev <span class="kw">in</span>
+ zip(claims, severities)]</pre>
+          <table class="ptable">
+            <tr><th>Parameter</th><th>Type</th><th>What it is</th></tr>
+            <tr><td><code>claim_info</code></td><td><code>ClaimInformation</code></td><td>From Stage 1</td></tr>
+            <tr><td><code>severity_assessment</code></td><td><code>Optional[SeverityAssessment]</code></td><td>From Stage 2 (can be None)</td></tr>
+          </table>
+          <div style="margin-top:8px;font-size:11.5px;"><strong>Guard:</strong> if <code>severity_assessment is None</code> → immediately returns <code>None</code> (skips AI call)</div>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- PROMPT -->
+      <div class="flow-node node-prompt">
+        <div class="node-label">③ Prompt Engineering</div>
+        <div class="node-title nt-prompt">queue_routing_system_prompt</div>
+        <div class="node-body">
+          <pre class="mini">messages = [
+  {<span class="st">"role"</span>: <span class="st">"system"</span>,
+   <span class="st">"content"</span>: queue_routing_system_prompt},
+  {<span class="st">"role"</span>: <span class="st">"user"</span>,
+   <span class="st">"content"</span>: json.dumps(routing_input)}
+]</pre>
+          <strong>System prompt tells AI:</strong><br>
+          · Role: "claim routing specialist"<br>
+          · Routing rules (4 queues mapped to severity)<br>
+          · Priority scale 1 (urgent) → 5 (cosmetic)<br>
+          · Output: JSON with <code>claim_id</code>, <code>queue</code>, <code>priority</code>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- PYDANTIC -->
+      <div class="flow-node node-pydantic">
+        <div class="node-label">④ Pydantic Model</div>
+        <div class="node-title nt-pydantic">ClaimRouting</div>
+        <div class="node-body">
+          <code>class ClaimRouting(BaseModel):</code><br><br>
+          <table class="ptable">
+            <tr><th>Field</th><th>Rule</th></tr>
+            <tr><td><code>claim_id</code></td><td>str (no length constraint)</td></tr>
+            <tr><td><code>queue</code></td><td>Literal: 4 queue names only</td></tr>
+            <tr><td><code>priority</code></td><td>int, ge=1, le=5</td></tr>
+          </table>
+          <div style="margin-top:8px;">
+            <span class="vpill vp-ok">✔ pass</span> queue in 4 values, priority 1–5<br>
+            <span class="vpill vp-err">✘ fail</span> e.g. priority=6 → rejected
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- GATE -->
+      <div class="flow-node node-gate">
+        <div class="node-label">⑤ Gate Check</div>
+        <div class="node-title nt-gate">gate3_validate_routing()</div>
+        <div class="node-body">
+          Simplest gate — Pydantic alone is sufficient here (no extra business logic needed):<br>
+          <pre class="mini"><span class="nm">d</span> = json.loads(routing_json)
+<span class="ty">ClaimRouting</span>(**d)
+<span class="cm"># Pydantic rejects anything outside
+# the 4 allowed queue names or
+# priority outside 1–5</span></pre>
+          <strong>Returns:</strong> <code>ClaimRouting</code><br>
+          <strong>On fail:</strong> <code>ValueError</code> → caller returns <code>None</code>
+        </div>
+      </div>
+
+      <div class="flow-connector">➜</div>
+
+      <!-- OUTPUT -->
+      <div class="flow-node node-output">
+        <div class="node-label">⑥ Output / Exit</div>
+        <div class="node-title nt-output">ClaimRouting object</div>
+        <div class="node-body">
+          <strong>All 5 results:</strong>
+          <pre class="mini">C001 → glass,           p=4
+C002 → material_damage, p=3
+C003 → total_loss,      p=2
+C004 → material_damage, p=3
+C005 → material_damage, p=3</pre>
+          Stored in:<br>
+          <code>routed_claim_items</code><br><br>
+          Then all three lists zipped into a <strong>pandas DataFrame</strong> for the final display.
+        </div>
+      </div>
+
+    </div><!-- /flow-row -->
+
+    <div class="callout callout-green">
+      <strong>What Pydantic is doing here:</strong> The <code>queue</code> field uses <code>Literal["glass","fast_track","material_damage","total_loss"]</code> — it acts like a whitelist. If the AI returns anything else (e.g., <code>"fast track"</code> with a space), Pydantic rejects it immediately. The <code>priority</code> field uses <code>ge=1, le=5</code> (greater-than-or-equal / less-than-or-equal) constraints from <code>Field()</code>, so 0 or 6 are automatically rejected.
+    </div>
+    <div class="callout callout-blue" style="margin-top:12px;">
+      <strong>What Prompt Engineering is doing here:</strong> The system prompt gives the AI both the routing rules AND the priority scale, so the AI is reasoning with the carrier's business logic baked in. Crucially, the <code>user</code> message contains the full combined object (claim + severity) as JSON — giving the AI everything it needs to make an informed routing decision without any prior context.
+    </div>
+
+    <!-- Final outcome -->
+    <div class="outcome">
+      <h3>🎯 What the whole notebook achieves — in one sentence</h3>
+      <p>
+        Five raw, informal accident reports go in → three chained AI calls (each with a specialist prompt + a Pydantic gate) transform them into fully validated, structured routing decisions → a pandas DataFrame gives the insurance operations team an instant, actionable triage list — all without a single human reading the reports manually.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══ TAB SCRIPT ═══ -->
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>
